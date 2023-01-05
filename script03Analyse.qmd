@@ -1,0 +1,655 @@
+---
+title: "Rap francais"
+format: 
+  html:
+    fig-width: 12
+    fig-height: 9
+execute:
+  warning: false
+  message: false
+editor: visual
+---
+
+![rappeur](Bordeaux62-street-art-3GC-01.jpg)
+
+
+# Stylométrie
+
+## Lisibilité
+
+Le rap c'est difficile à lire . Les scores de lisibilités sont incalculables, car la phrase est dissoutes, la ponctuation disparue. D'ailleurs la ponctuation est venue tardivement, le latin n'en avait pas. Qu'est-ce qui fait une phrase en l'absence de ponctuation ? La structure de la rime ? Le tempo de la phrase? Avons nous les outils ?
+
+Le rap est un langage initiatique et ésotérique, un langage cryptique. plus difficile à lire que la philosophie. Les IA n'arrivent même pas bien à détecter leur langue.
+
+Un biais apparaît par le fait que les transcriptions en vers, ignorent la ponctuation .... et produisent des phrases longues.
+
+```{r 00}
+library(tidyverse)
+library(quanteda)
+library(quanteda.textmodels)
+library(quanteda.textstats)
+library(ggwordcloud)
+library(quanteda.textplots)
+library(tidytext)
+library(udpipe) 
+library(Rtsne)
+library(ggrepel)
+library(seededlda)
+
+# syntaxis and lexical annotations
+
+My_Theme = theme(
+  axis.title.x = element_text(size = 10),
+  axis.text.x = element_text(size = 7),
+  axis.text.y = element_text(size = 7),
+  axis.title.y = element_text(size = 10))
+
+theme_set(theme_minimal()+ theme_set(theme_minimal()))
+
+
+
+text1<-read.csv("RapLyrics.csv")
+
+ggplot(text1,aes(x=n_words))+
+  geom_density()+ 
+  scale_x_log10()+ 
+  labs( title = "Distribution du nombre de mots par texte",
+                         x= "nombre de mots",
+                         y= "densité de probabilité")
+
+#la fonction de calcul de lisibilité
+#une fonction impossible
+readability<-textstat_readability(text1$Paroles, 
+                                  measure = c("Flesch",
+                                              "meanSentenceLength",
+                                              "meanWordSyllables")) 
+
+foo<-cbind(text1[,1:10],readability[,2:4])
+
+foo1<-foo %>%
+  group_by(quinc) %>%
+  summarise(Flesch=mean(Flesch, na.rm=TRUE), 
+            SentenceLength= mean(meanSentenceLength, na.rm=TRUE),
+            WordSyllables= mean(meanWordSyllables, na.rm=TRUE)) %>%
+  pivot_longer(-quinc,names_to="Variable", values_to="Score")
+
+ggplot(foo1,aes(x=quinc, y=Score, group=Variable))+
+  geom_line(size=1, aes(color=Variable), stat="identity", alpha=0.3)+
+  geom_smooth(aes(color=Variable))+
+  facet_wrap(vars(Variable), scale="free", ncol=1)+
+  labs(title = "Rap Français :  readability", x=NULL, y=NULL)
+
+```
+
+```{r 06b}
+
+foo1<-foo %>%
+  group_by(Artiste) %>%
+  summarise(Flesch=mean(Flesch, na.rm=TRUE), 
+            SentenceLength= mean(meanSentenceLength, na.rm=TRUE),
+            WordSyllables= mean(meanWordSyllables, na.rm=TRUE))
+
+ggplot(foo1,aes(label=Artiste, y=Flesch, x=SentenceLength))+
+  geom_text_repel(aes(label=Artiste, size=n_words), stat="identity", size=2, max.overlaps =50)+
+  labs(title = "Rap Français :  readability", 
+       x="SentenceLength", 
+       y="Flesh")+ geom_smooth()+
+    scale_size(range = c(.1, 4))
+
+ggplot(foo1,aes(label=Artiste, y=Flesch, x=WordSyllables))+
+  geom_text_repel(aes(label=Artiste), max.overlaps =50)+
+  labs(title = "Rap Français :  readability", 
+       x="WordSyllables", 
+       y="Flesh")+ 
+  My_Theme+ geom_smooth()+
+    scale_size(range = c(.1, 4))
+
+ggplot(foo1,aes(label=Artiste, y=SentenceLength, x=WordSyllables))+
+  geom_text_repel(aes(label=Artiste),max.overlaps =50, size=3)+
+  labs(title = "Rap Français :  readability", 
+       x="WordSyllables", 
+       y="SentenceLength")+ 
+  geom_smooth()+
+    scale_size(range = c(.1, 4))
+
+
+```
+
+## Diversité lexicale
+
+Ce sont les poètes de la rue qui remportent le concours : un \[extrait\](https://genius.com/Les-sages-poetes-de-la-rue-quest-ce-qui-fait-marcher-les-sages-lyrics), au plus réduit on a \[Jul\](https://genius.com/Jul-tchikita-lyrics) .
+
+```{r 07}
+
+lexdiv<-tokens(text1$Paroles)%>%
+  textstat_lexdiv(text1$Paroles, 
+                  measure = c("TTR", "Maas"),
+                  log.base = 10,
+                  remove_numbers = TRUE,  
+                  remove_punct = TRUE,  
+                  remove_symbols = TRUE,
+                  remove_hyphens = TRUE) 
+
+foo<-cbind(text1[,1:10],lexdiv[,2:4])
+
+foo1<-foo %>%
+  group_by(quinc) %>%
+  summarise(TTR=mean(TTR, na.rm=TRUE), 
+            Maas= mean(Maas, na.rm=TRUE)) %>%
+  pivot_longer(-quinc,names_to="Variable", values_to="Score")
+
+ggplot(foo1,aes(x=quinc, y=Score, group=Variable))+
+  geom_line(size=1.2, aes(color=Variable), stat="identity")+
+  facet_wrap(vars(Variable), scale="free", ncol=1)+
+  labs(title = "Rap Français : diversité lexicale", x=NULL, y=NULL)
+
+foo1<-foo %>%
+  group_by(Artiste) %>%
+  summarise(TTR=mean(TTR, na.rm=TRUE), 
+            Maas= mean(Maas, na.rm=TRUE))
+
+ggplot(foo1,aes(label=Artiste, x=TTR, y=Maas))+
+  geom_text_repel(aes(label=Artiste), stat="identity", size=3, max.overlaps =30)+
+  labs(title = "Rap Français :  diversité lexicale", x="TTR", y="Maas")+ My_Theme+geom_smooth()
+
+```
+
+# Sentiment
+
+## Sentiment et émotions
+
+```{r 08}
+library(syuzhet)
+
+#paramétres
+method <- "nrc"
+lang <- "french"
+
+#extraction
+emotions <- get_nrc_sentiment(text1$Paroles,language = "french")
+
+
+
+```
+
+```{r 09}
+polarity<-subset(emotions,select=c(positive, negative))
+foo<-cbind(text1,polarity)
+
+#mean per 
+foo1<-foo %>%
+  mutate(positive=positive/n_words, 
+         negative=negative/n_words,
+         neutral=1- positive-negative)%>%
+  group_by(quinc) %>%
+  summarise(positive=mean(positive, na.rm=TRUE), 
+            negative= -mean(negative, na.rm=TRUE))%>%
+  pivot_longer(-quinc,names_to="Variable", values_to="Score")
+
+ggplot(foo1,aes(x=quinc, y=Score, group=Variable))+
+  geom_line(size=1.2, aes(color=Variable), stat="identity")+
+  labs(title = "Sentiment", x=NULL, y=NULL)+
+  scale_colour_manual(values=c( "Red", "Darkgreen"))
+
+emotion<-emotions[,1:8]
+foo<-cbind(text1,emotion)
+
+foo1<-foo %>%
+  mutate(anger=anger/n_words, 
+         joy=joy/n_words,
+         sadness= sadness/n_words,
+         surprise=surprise/n_words,
+         fear=fear/n_words)%>%
+  group_by(quinc) %>%
+  summarise(anger=mean(anger, na.rm=TRUE), 
+            joy= mean(joy, na.rm=TRUE),
+            sadness=mean(sadness, na.rm=TRUE),
+            surprise=mean(surprise, na.rm=TRUE),
+            fear=mean(fear, na.rm=TRUE)
+            )%>%
+  pivot_longer(-quinc,names_to="Variable", values_to="Score")
+
+
+ggplot(foo1,aes(x=quinc, y=Score, group=Variable))+
+  geom_line(size=1.2, aes(color=Variable), stat="identity")+
+  labs(title = "Sentiment", x=NULL, y=NULL)+
+  scale_colour_manual(values=c( "Red", "Brown", "Gold", "Purple", "Grey"))
+
+
+```
+
+## Sexe, et sexisme
+
+```{r 10}
+
+my_text <- text1$Paroles
+method <- "custom"
+lexicon_sexisme<- data.frame(word=c("Put","put","Pute","pute", "putes",
+                                    "pu-pu-pu-pute", "Conne", "conne",
+                                    "Putain", "putain", "putaine",
+                                    "salope", "salopes", "Salope", "Salopes", 
+                                    "Pétasse", "pétasse","pétasses",
+                                    "morue","Chienne, chienne","chiennes",
+                                    "bitch","bitches","bitchs",
+                                    "femelle", "femelles", "pédé",
+                                    "escorte", "garce","pédés",
+                                    "prostipute"
+                                    ),
+                             value=c(1,1,1,1,1,1,1,1,1,1,
+                                     1,1,1,1,1,1,1,1,1,1,
+                                     1,1,1,1,1,1,1,1,1,1,
+                                     1))
+
+custom_sexisme <- get_sentiment(my_text, 
+                                method = method, 
+                                lexicon = lexicon_sexisme)
+
+custom_sexisme<-as.data.frame(custom_sexisme)
+
+
+lexicon_sexe <- data.frame(word=c("bite","bites", "Chatte","chatte","chattes",
+                                  "queue","suce", "sucer","Suce",
+                                  "Baiser", "baiser","baise","baises",
+                                  "foutre", "niquer","nique","Nique","Niquer",
+                                  "couille", "couilles", "fuck","Fuck",
+                                  "hmm", "sein","seins",
+                                  "enculé", "enculés", "enculer", "Enculé",
+                                  "Enculés", "Enculer", "violer",
+                                  "sex", "sexe", "sperme","cul", "mouille", "zob"),
+                             value=c(1,1,1,1,1,1,1,1,1,1,
+                                     1,1,1,1,1,1,1,1,1,1,
+                                     1,1,1,1,1,1,1,1,1,1,
+                                     1,1,1,1,1,1,1,1))
+custom_sexe <- get_sentiment(my_text, 
+                                method = method, 
+                                lexicon = lexicon_sexe)
+
+
+custom_sexe<-as.data.frame(custom_sexe)
+
+foo<-cbind(text1,custom_sexisme,custom_sexe)%>%
+  mutate(tx_sexisme=custom_sexisme/n_words,
+         tx_sexe=custom_sexe/n_words)
+
+ggplot(foo, aes(x=log(tx_sexe+0.0001), y=log(tx_sexisme+0.0001)))+
+  geom_jitter(position = "jitter")
+
+
+foo1<-foo %>%
+  group_by(quinc) %>%
+  summarise(tx_sexisme=mean(tx_sexisme, na.rm=TRUE),
+            tx_sexe=mean(tx_sexe, na.rm=TRUE))%>%
+  pivot_longer(-quinc,names_to="variable", values_to='value')
+
+ggplot(foo1,aes(x=quinc, y=value, group=variable))+
+  geom_line(stat="identity", aes(color=variable))+
+  labs(title = "Taux de sexisme", x=NULL, y="Taux en %")+
+  scale_colour_manual(values=c("Pink"," purple", "Darkgreen","Grey"))+
+ scale_y_continuous(labels = scales::percent,limits=c(0,0.005))
+
+ggsave("sex_ism01.svg",plot=last_plot(), width = 30, height = 20, units = "cm")
+
+
+foo2<-foo %>%
+  group_by(Artiste) %>%
+  summarise(tx_sexisme=mean(tx_sexisme, na.rm=TRUE),
+            tx_sexe=mean(tx_sexe, na.rm=TRUE))%>%
+  pivot_longer(Artiste,names_to="variable", values_to='value')
+
+ggplot(foo2,aes(x=tx_sexe, y=tx_sexisme, groupe=variable))+
+  geom_text_repel(aes(label=value), size=3, max.overlaps = 30)+
+  scale_x_log10()+
+  scale_y_log10()
+
+ggsave("sex_ism02.svg",plot=last_plot(), width = 30, height = 20, units = "cm")
+
+
+
+```
+
+# Regardons les mots
+
+D'abord les compter, ensuite les représenter. Ce n'est qu'un avant-goût, la diversité est masquée par la généralité. On examinera aussi un cas particulier celui d' Alkpote.... qu'il faudra comparer à MC solaar.
+
+```{r 11}
+
+corpus<-corpus(text1,id_field = "Titre",text_field = "Paroles")
+
+toks<-tokens(corpus,
+            remove_punct = TRUE, 
+            remove_symbols=TRUE, 
+            remove_numbers=TRUE)%>%
+  tokens_remove(stopwords("french"))%>%tokens_tolower()
+
+foo1 <-unlist_tokens(toks) 
+
+foo2<-foo1 %>% 
+  group_by(token)%>%
+  summarise(n=n())%>%
+              mutate(rank=rank(desc(n)))
+                     
+ggplot(foo2, aes(x=rank,y=n))+
+  geom_point(alpha=.2)+geom_smooth(method=lm)+
+  scale_x_log10()+
+  scale_y_log10()+
+  labs(title = "Zipf like")
+
+#with cleaning
+
+dfmat1 <-toks %>% dfm()%>%
+  dfm_trim(min_termfreq = 1)
+
+textplot_wordcloud(dfmat1, max_words = 200,   max_size = 8)
+
+#keyness
+
+#le cas alkpote
+dfmat2 <- dfm(corpus_subset(corpus, Artiste == "Alkpote"),
+              remove = stopwords("french"), remove_punct = TRUE) %>%
+   dfm_trim(min_termfreq = 3)
+
+textplot_wordcloud(dfmat2, max_words = 100,max_size = 8)
+
+#le cas Mcsolarr
+dfmat2 <- dfm(corpus_subset(corpus, Artiste == "MC Solaar"),
+              remove = stopwords("french"), remove_punct = TRUE) %>%
+   dfm_trim(min_termfreq = 3)
+
+textplot_wordcloud(dfmat2, max_words = 200,max_size = 8)
+
+
+```
+
+# Avec des annotations
+
+Ce sera plus concentré sur les mots qui retiennent le sens. Mais ça marche pas bien ! même pas du tout. Il n'y a pas de structure de phrase. On peut imaginer un transformer pour replacer les "." ?
+
+```{r 12}
+library(udpipe)
+fr <- udpipe_download_model(language = "french")
+udmodel_french <- udpipe_load_model(file = "french-gsd-ud-2.5-191206.udpipe")
+
+#UD <- udpipe_annotate(udmodel_french, x=text1$Paroles, trace =200,            parallel.cores = 4)
+
+#UD <- as.data.frame(UD)
+
+#saveRDS(UD, "UD.rds")
+
+```
+
+```{r 13}
+UD<- readRDS("UD.rds")
+
+g<-UD%>%
+  group_by(upos)%>%
+  summarise(n=n())%>%
+  ggplot(aes(x=reorder(upos,n), y=n))+
+  geom_bar(stat = "identity")+
+  coord_flip()
+g
+
+foo<-UD %>%
+  group_by(token)%>%
+  summarise(n=n())
+
+foo
+
+foo<-UD %>%
+  filter(upos=="ADJ" |upos=="NOUN") %>%
+  group_by(lemma, upos)%>%
+  summarise(n=n()) %>%
+  filter(n>80)%>%
+  ggplot(aes(label = lemma, size = log(n), group=upos)) +
+  geom_text_wordcloud(aes(color=upos)) +
+  theme_minimal()+
+  facet_wrap(vars(upos))
+
+foo
+
+
+foo1<-UD %>%
+  mutate(id=paste0(doc_id,paragraph_id,sentence_id,token_id))%>%
+  select(id, lemma)%>%
+  rename(noun=lemma)
+
+foo<-UD %>%
+  filter(dep_rel=="amod")%>%
+  mutate(id=paste0(doc_id,paragraph_id,sentence_id,head_token_id))%>%
+  left_join(foo1)%>%
+  select(id, lemma, noun)%>%
+  rename(adj=lemma)%>%
+  group_by(noun,adj)%>%
+  summarise(n=n())%>%
+  filter(n>5)
+#A  Correspondance Analysis solution?
+#igraph approach belong to the netx lesson 
+library(igraph)
+g <- graph.data.frame(foo, directed=FALSE)
+V(g)$type <- bipartite_mapping(g)$type  ## Add the "type" attribute
+V(g)$label.color <- ifelse(V(g)$type, "salmon4", "blue2")
+V(g)$fill <- ifelse(V(g)$type, "salmon4", "blue2")
+V(g)$shape <-ifelse(V(g)$type, "", "")
+plot(g,vertex.label.cex = 0.8)
+```
+
+# Un Tsne with tf-idf
+
+On calcule les tf idf et on projete les similarités dans un espace de faible dimension.
+
+```{r 14}
+
+UD<-readRDS("UD.rds")
+
+index<-UD%>%
+  group_by(doc_id)%>%
+  summarise(n=n())%>%
+  mutate(id=str_sub(4,))%>%
+  arrange(id)
+
+
+
+foo<-UD %>%
+  filter(upos=="NOUN" |upos=="VERB" |upos=="ADJ" |upos=="ADV")%>%
+  group_by(doc_id)%>%
+  count(doc_id, lemma, sort=TRUE)%>%rename(word=lemma)
+
+words <- foo %>% 
+  group_by(word) %>% 
+  summarize(total_word = n())
+
+doc <- foo %>%
+  group_by(doc_id) %>% 
+  summarize(total_doc = n())
+
+foo1<-foo %>%
+  left_join(words)%>%
+  filter(total_word>10)%>%
+  pivot_wider(doc_id,names_from ="word", values_from = "n" )
+
+foo1[is.na(foo1)]<-0
+
+foo2<-foo1 %>%
+  column_to_rownames(var="doc_id")
+
+dfm<- as.dfm(foo2)
+
+dfm_tf_idf<-dfm_tfidf(dfm)
+
+
+df_tf_idf<-as.data.frame(dfm_tf_idf)
+
+
+#just to keep words aside
+
+foo2<-df_tf_idf%>%
+  select(-doc_id)%>% 
+  t()
+
+word<-as.data.frame(rownames(foo2))%>%
+  rename(word=1)
+
+set.seed(42) # Sets seed for reproducibility
+tsne_out <- Rtsne(foo2,
+                  initial_dims = 20,
+                  perplexity = 20,
+                  partial_pca=TRUE,
+                  theta=.5,
+                  num_threads=4, 
+                  verbose=1,
+                  check_duplicates = FALSE)
+tsne_out1<-tsne_out$Y
+tsne_out2<-as.data.frame(cbind(word,tsne_out1)) %>%
+  left_join(words)
+  
+ggplot(tsne_out2, aes(x=`1`, y=`2` ))+
+  geom_text(aes(label=word, 
+                      size=log(total_word),
+                      alpha=10-log(total_word)))+
+  theme(legend.position = "none")+
+  labs(x=NULL, y=NULL)+  
+  scale_size(range = c(.1, 3))
+
+ggsave("tsne.svg",plot=last_plot(), width = 30, height = 20, units = "cm")
+
+```
+
+# Topic modelling
+
+Une première version spontanée
+
+```{r 15 }
+library(seededlda)
+
+set.seed(1234)
+slda <- textmodel_lda(dfm_tf_idf, 20)
+
+phi<-slda$phi %>% 
+  as.data.frame() %>%
+  rownames_to_column(var="topic") %>% 
+  pivot_longer(-topic,names_to = "word", values_to = "p")%>%
+  arrange(topic,p) %>%
+  group_by(topic)%>%
+  top_n(40)
+
+ggplot(phi, aes(label=word))+
+  geom_text_wordcloud(aes(size=p)) + 
+  facet_wrap(vars(topic), ncol=4)+
+  theme(strip.text.x = element_text(size = 6))+
+    scale_size(range = c(1, 4))
+
+phi$topic[phi$topic=="topic1"]<-"Traffic"
+phi$topic[phi$topic=="topic2"]<-"Love"
+phi$topic[phi$topic=="topic3"]<-"Ennui"
+phi$topic[phi$topic=="topic4"]<-"Exister socialement"
+phi$topic[phi$topic=="topic5"]<-"ouai ouai"
+phi$topic[phi$topic=="topic6"]<-"Amour/haine"
+phi$topic[phi$topic=="topic7"]<-"Le monde"
+phi$topic[phi$topic=="topic8"]<-"Fou/fort"
+phi$topic[phi$topic=="topic9"]<-"Mélancolie"
+phi$topic[phi$topic=="topic10"]<-"Rapper"
+phi$topic[phi$topic=="topic11"]<-"Le Temps qui passe"
+phi$topic[phi$topic=="topic12"]<-"délinquance"
+phi$topic[phi$topic=="topic13"]<-"Amis/ ennemis"
+phi$topic[phi$topic=="topic14"]<-"Onomatopées"
+phi$topic[phi$topic=="topic15"]<-"Responsabilité"
+phi$topic[phi$topic=="topic16"]<-"respect/gang"
+phi$topic[phi$topic=="topic17"]<-"Comprendre"
+phi$topic[phi$topic=="topic18"]<-"American"
+phi$topic[phi$topic=="topic19"]<-"Dignité"
+phi$topic[phi$topic=="topic20"]<-"Violence"
+
+ggplot(phi, aes(label=word))+
+  geom_text_wordcloud(aes(size=p)) + 
+  facet_wrap(vars(topic), ncol=4)+
+  theme(strip.text.x = element_text(size =9))+
+    scale_size(range = c(1, 4))
+
+
+ggsave("topic_v01.svg",plot=last_plot(), width = 30, height = 20, units = "cm")
+
+
+theta<-as.data.frame(slda$theta)
+
+
+```
+
+to do
+
+-   test the semi-supervised seedlda model
+
+-   and stm for time évolution.
+
+```{r 16}
+
+
+dfmat1 <-toks %>% 
+  dfm()%>%
+  dfm_trim(min_termfreq = 30, max_termfreq = 550)
+
+set.seed(1234)
+
+
+slda <- textmodel_lda(dfmat1, 20)
+
+phi<-slda$phi %>% 
+  as.data.frame() %>%
+  rownames_to_column(var="topic") %>% 
+  pivot_longer(-topic,names_to = "word", values_to = "p")%>%
+  arrange(topic,p) %>%
+  group_by(topic)%>%
+  top_n(40)
+
+ggplot(phi, aes(label=word))+
+  geom_text_wordcloud(aes(size=p)) + 
+  facet_wrap(vars(topic), ncol=4)+
+  theme(strip.text.x = element_text(size = 6))+
+    scale_size(range = c(1, 4))
+
+ggsave("topic_V02.svg",plot=last_plot(), width = 30, height = 20, units = "cm")
+
+phi$topic[phi$topic=="topic1"]<-"Traffic"
+phi$topic[phi$topic=="topic2"]<-"Love"
+phi$topic[phi$topic=="topic3"]<-"Ennui"
+phi$topic[phi$topic=="topic4"]<-"Exister socialement"
+phi$topic[phi$topic=="topic5"]<-"ouai ouai"
+phi$topic[phi$topic=="topic6"]<-"Amour/haine"
+phi$topic[phi$topic=="topic7"]<-"Le monde"
+phi$topic[phi$topic=="topic8"]<-"Fou/fort"
+phi$topic[phi$topic=="topic9"]<-"Mélancolie"
+phi$topic[phi$topic=="topic10"]<-"Rapper"
+phi$topic[phi$topic=="topic11"]<-"Le Temps qui passe"
+phi$topic[phi$topic=="topic12"]<-"délinquance"
+phi$topic[phi$topic=="topic13"]<-"Amis/ ennemis"
+phi$topic[phi$topic=="topic14"]<-"Onomatopées"
+phi$topic[phi$topic=="topic15"]<-"Responsabilité"
+phi$topic[phi$topic=="topic16"]<-"respect/gang"
+phi$topic[phi$topic=="topic17"]<-"Comprendre"
+phi$topic[phi$topic=="topic18"]<-"American"
+phi$topic[phi$topic=="topic19"]<-"Dignité"
+phi$topic[phi$topic=="topic20"]<-"Violence"
+
+ggplot(phi, aes(label=word))+
+  geom_text_wordcloud(aes(size=p)) + 
+  facet_wrap(vars(topic), ncol=4)+
+  theme(strip.text.x = element_text(size =9))+
+    scale_size(range = c(1, 4))
+
+
+
+
+theta<-as.data.frame(slda$theta)
+
+topic<-cbind(text1,theta) 
+
+foo<-topic %>%
+  group_by(quinc)%>%
+  summarise(topic1=mean(topic1, na.rm=TRUE),
+            topic10=mean(topic10,na.rm=TRUE),
+            topic16=mean(topic16,na.rm=TRUE),
+            topic19=mean(topic19,na.rm=TRUE))%>%
+  pivot_longer(-quinc, names_to = "variable", values_to = "value" )
+
+ggplot(foo, aes(x=quinc,y=value, group=variable ))+ 
+  geom_line(stat="identity", aes(color=variable))
+
+```
