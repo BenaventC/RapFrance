@@ -1,0 +1,7 @@
+"0",""
+"0","#with cleaning"
+"0",""
+"0","dfmat1 <-toks %>% dfm()%>%"
+"0","  dfm_trim(min_termfreq = 1)"
+"0",""
+"0","textplot_wordcloud(dfmat1, max_words = 200,   max_size = 8)"
