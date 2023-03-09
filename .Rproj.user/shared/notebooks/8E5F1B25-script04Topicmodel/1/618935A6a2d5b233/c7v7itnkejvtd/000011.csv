@@ -1,0 +1,15 @@
+"0","toks<-tokens(
+ corpus,
+  what = ""word"",
+  remove_punct = TRUE,
+  remove_symbols = TRUE,
+  remove_numbers = TRUE,
+  remove_url = TRUE,
+  remove_separators = TRUE,
+  split_hyphens = FALSE,
+  split_tags = FALSE,
+  include_docvars = TRUE,
+  padding = FALSE) %>%
+  tokens_remove(stopwords(""french""))
+"
+"2","Warning: split_tags argument is not used."

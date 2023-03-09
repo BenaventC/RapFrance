@@ -1,0 +1,95 @@
+"0","library(tidyverse)"
+"2","Warning: le package ‘tidyverse’ a été compilé avec la version R 4.0.5"
+"2","Registered S3 methods overwritten by 'dbplyr':
+  method         from
+  print.tbl_lazy     
+  print.tbl_sql      
+"
+"2","[30m-- [1mAttaching packages[22m --------------------------------------------------------------------------------- tidyverse 1.3.1 --[39m
+"
+"2","[30m[32mv[30m [34mggplot2[30m 3.3.6     [32mv[30m [34mpurrr  [30m 0.3.4
+[32mv[30m [34mtibble [30m 3.1.7     [32mv[30m [34mdplyr  [30m 1.0.9
+[32mv[30m [34mtidyr  [30m 1.2.0     [32mv[30m [34mstringr[30m 1.4.0
+[32mv[30m [34mreadr  [30m 2.0.0     [32mv[30m [34mforcats[30m 0.5.1[39m
+"
+"2","Warning: le package ‘tidyr’ a été compilé avec la version R 4.0.5"
+"2","Warning: le package ‘readr’ a été compilé avec la version R 4.0.5"
+"2","Warning: le package ‘forcats’ a été compilé avec la version R 4.0.5"
+"2","[30m-- [1mConflicts[22m ------------------------------------------------------------------------------------ tidyverse_conflicts() --
+[31mx[30m [34mdplyr[30m::[32mfilter()[30m masks [34mstats[30m::filter()
+[31mx[30m [34mdplyr[30m::[32mlag()[30m    masks [34mstats[30m::lag()[39m
+"
+"2","Warning message:
+"
+"2","In .recacheSubclasses(def@className, def, env) :"
+"2","
+ "
+"2"," undefined subclass ""numericVector"" of class ""Mnumeric""; definition not updated
+"
+"0","library(quanteda)"
+"2","Warning: le package ‘quanteda’ a été compilé avec la version R 4.0.5"
+"2","Package version: 3.0.0
+Unicode version: 13.0
+ICU version: 69.1
+"
+"2","Parallel computing: 4 of 4 threads used.
+"
+"2","See https://quanteda.io for tutorials and examples.
+"
+"0","library(quanteda.textmodels)"
+"2","Warning: le package ‘quanteda.textmodels’ a été compilé avec la version R 4.0.5"
+"0","library(quanteda.textstats)"
+"2","Warning: le package ‘quanteda.textstats’ a été compilé avec la version R 4.0.5"
+"0","library(ggwordcloud)"
+"2","Warning: le package ‘ggwordcloud’ a été compilé avec la version R 4.0.5"
+"0","library(quanteda.textplots)"
+"2","Warning: le package ‘quanteda.textplots’ a été compilé avec la version R 4.0.5"
+"0","library(tidytext)"
+"2","Warning: le package ‘tidytext’ a été compilé avec la version R 4.0.5"
+"0","library(udpipe) "
+"2","Warning: le package ‘udpipe’ a été compilé avec la version R 4.0.5"
+"2","Registered S3 method overwritten by 'data.table':
+  method           from
+  print.data.table     
+"
+"0","library(Rtsne)"
+"2","Warning: le package ‘Rtsne’ a été compilé avec la version R 4.0.5"
+"0","library(ggrepel)"
+"2","Warning: le package ‘ggrepel’ a été compilé avec la version R 4.0.5"
+"0","library(seededlda)"
+"2","Warning: le package ‘seededlda’ a été compilé avec la version R 4.0.5"
+"2","Le chargement a nécessité le package : proxyC
+"
+"2","Warning: le package ‘proxyC’ a été compilé avec la version R 4.0.5"
+"2","
+Attachement du package : ‘proxyC’
+
+"
+"2","The following object is masked from ‘package:stats’:
+
+    dist
+
+"
+"2","
+Attachement du package : ‘seededlda’
+
+"
+"2","The following object is masked from ‘package:stats’:
+
+    terms
+
+"
+"0","# syntaxis and lexical annotations"
+"0",""
+"0","My_Theme = theme("
+"0","  axis.title.x = element_text(size = 10),"
+"0","  axis.text.x = element_text(size = 7),"
+"0","  axis.text.y = element_text(size = 7),"
+"0","  axis.title.y = element_text(size = 10))"
+"0",""
+"0","theme_set(theme_minimal()+ theme_set(theme_minimal()))"
+"0",""
+"0",""
+"0","text1<-read.csv(""RapLyrics.csv"") %>%"
+"0","  filter(n_words>100)"
+"0",""

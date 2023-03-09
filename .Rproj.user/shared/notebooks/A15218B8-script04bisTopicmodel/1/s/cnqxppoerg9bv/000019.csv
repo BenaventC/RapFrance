@@ -1,0 +1,15 @@
+"0","phi<-slda$phi %>% 
+  as.data.frame() %>%
+  rownames_to_column(var=""topic"") %>% 
+  pivot_longer(-topic,names_to = ""word"", values_to = ""p"")%>%
+  arrange(topic,p) %>%
+  group_by(topic)%>%
+  top_n(40)
+"
+"2","Selecting by p"
+"0",""
+"0","ggplot(phi, aes(label=word))+"
+"0","  geom_text_wordcloud(aes(size=p)) + "
+"0","  facet_wrap(vars(topic), ncol=5)+"
+"0","  theme(strip.text.x = element_text(size = 6))+"
+"0","    scale_size(range = c(1, 4))"

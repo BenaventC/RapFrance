@@ -12,9 +12,9 @@ editor: visual
 
 ![rappeur](Bordeaux62-street-art-3GC-01.jpg)
 
+# Stylométrie
 
-
-## toolbox
+## Lisibilité
 
 Le rap c'est difficile à lire . Les scores de lisibilités sont incalculables, car la phrase est dissoutes, la ponctuation disparue. D'ailleurs la ponctuation est venue tardivement, le latin n'en avait pas. Qu'est-ce qui fait une phrase en l'absence de ponctuation ? La structure de la rime ? Le tempo de la phrase? Avons nous les outils ?
 
@@ -46,12 +46,12 @@ My_Theme = theme(
 theme_set(theme_minimal()+ theme_set(theme_minimal()))
 
 
-text1<-read.csv("RapLyrics.csv") %>%
-  filter(n_words>100)
+
+text1<-read.csv("RapLyrics.csv")
 
 ```
 
-## Avec des annotations
+# Avec des annotations
 
 Ce sera plus concentré sur les mots qui retiennent le sens. Mais ça marche pas bien ! même pas du tout. Il n'y a pas de structure de phrase. On peut imaginer un transformer pour replacer les "." ?
 
@@ -59,21 +59,19 @@ Ce sera plus concentré sur les mots qui retiennent le sens. Mais ça marche pas
 library(udpipe)
 fr <- udpipe_download_model(language = "french")
 udmodel_french <- udpipe_load_model(file = "french-gsd-ud-2.5-191206.udpipe")
-UD <- udpipe_annotate(udmodel_french, x=text1$Paroles, trace =200, parallel.cores = 4)
-x <- as.data.frame(UD)
 
-#on sauvegarde pour usage ultérieur - les calculs sont longs.
-saveRDS(x, "x.rds")
+#UD <- udpipe_annotate(udmodel_french, x=text1$Paroles, trace =200, parallel.cores = 4)
 
-UD<-readRDS("UD.rds")
+#UD <- as.data.frame(UD)
 
-id<-UD %>%group_by(doc_id)%>%summarise(n=n())
+#saveRDS(UD, "UD.rds")
 
 word<-UD %>% 
   group_by(lemma)%>%
   summarise(n=n())%>% arrange(n)%>%
   mutate(rank=rank(-n),
          sum=cumsum(n))
+
 
 ggplot(word, aes(x=n, y=sum))+
   geom_point()+scale_y_log10()+
@@ -84,7 +82,6 @@ write.csv(word,"word_token.csv")
 
 
 ```
-
 
 ```{r 13}
 UD<- readRDS("UD.rds")
@@ -100,6 +97,8 @@ g
 foo<-UD %>%
   group_by(token)%>%
   summarise(n=n())
+
+foo
 
 foo<-UD %>%
   filter(upos=="ADJ" |upos=="NOUN") %>%
@@ -150,14 +149,13 @@ UD<-readRDS("UD.rds")
 index<-UD%>%
   group_by(doc_id)%>%
   summarise(n=n())%>%
-  mutate(id=as.numeric(str_sub(doc_id,4)))%>%
+  mutate(id=str_sub(4,))%>%
   arrange(id)
 
 foo<-UD %>%
   filter(upos=="NOUN" |upos=="VERB" |upos=="ADJ" |upos=="ADV")%>%
   group_by(doc_id)%>%
-  count(doc_id, lemma, sort=TRUE)%>%
-  rename(word=lemma)
+  count(doc_id, lemma, sort=TRUE)%>%rename(word=lemma)
 
 words <- foo %>% 
   group_by(word) %>% 
@@ -221,14 +219,13 @@ ggsave("tsne.svg",plot=last_plot(), width = 30, height = 20, units = "cm")
 
 # Topic modelling
 
-Une première version spontanée sur la base des tf-idf. 
+Une première version spontanée
 
 ```{r 15 }
-
 library(seededlda)
 
 set.seed(1234)
-slda <- textmodel_lda(dfm_tf_idf, 25)
+slda <- textmodel_lda(dfm_tf_idf, 20)
 
 phi<-slda$phi %>% 
   as.data.frame() %>%
@@ -240,7 +237,7 @@ phi<-slda$phi %>%
 
 ggplot(phi, aes(label=word))+
   geom_text_wordcloud(aes(size=p)) + 
-  facet_wrap(vars(topic), ncol=5)+
+  facet_wrap(vars(topic), ncol=4)+
   theme(strip.text.x = element_text(size = 6))+
     scale_size(range = c(1, 4))
 
@@ -287,6 +284,64 @@ to do
 -   and stm for time évolution.
 
 ```{r 16}
+
+
+dfmat1 <-toks %>% 
+  dfm()%>%
+  dfm_trim(min_termfreq = 30, max_termfreq = 550)
+
+set.seed(1234)
+
+
+slda <- textmodel_lda(dfmat1, 20)
+
+phi<-slda$phi %>% 
+  as.data.frame() %>%
+  rownames_to_column(var="topic") %>% 
+  pivot_longer(-topic,names_to = "word", values_to = "p")%>%
+  arrange(topic,p) %>%
+  group_by(topic)%>%
+  top_n(40)
+
+ggplot(phi, aes(label=word))+
+  geom_text_wordcloud(aes(size=p)) + 
+  facet_wrap(vars(topic), ncol=4)+
+  theme(strip.text.x = element_text(size = 6))+
+    scale_size(range = c(1, 4))
+
+ggsave("topic_V02.svg",plot=last_plot(), width = 30, height = 20, units = "cm")
+
+phi$topic[phi$topic=="topic1"]<-"Traffic"
+phi$topic[phi$topic=="topic2"]<-"Love"
+phi$topic[phi$topic=="topic3"]<-"Ennui"
+phi$topic[phi$topic=="topic4"]<-"Exister socialement"
+phi$topic[phi$topic=="topic5"]<-"ouai ouai"
+phi$topic[phi$topic=="topic6"]<-"Amour/haine"
+phi$topic[phi$topic=="topic7"]<-"Le monde"
+phi$topic[phi$topic=="topic8"]<-"Fou/fort"
+phi$topic[phi$topic=="topic9"]<-"Mélancolie"
+phi$topic[phi$topic=="topic10"]<-"Rapper"
+phi$topic[phi$topic=="topic11"]<-"Le Temps qui passe"
+phi$topic[phi$topic=="topic12"]<-"délinquance"
+phi$topic[phi$topic=="topic13"]<-"Amis/ ennemis"
+phi$topic[phi$topic=="topic14"]<-"Onomatopées"
+phi$topic[phi$topic=="topic15"]<-"Responsabilité"
+phi$topic[phi$topic=="topic16"]<-"respect/gang"
+phi$topic[phi$topic=="topic17"]<-"Comprendre"
+phi$topic[phi$topic=="topic18"]<-"American"
+phi$topic[phi$topic=="topic19"]<-"Dignité"
+phi$topic[phi$topic=="topic20"]<-"Violence"
+
+ggplot(phi, aes(label=word))+
+  geom_text_wordcloud(aes(size=p)) + 
+  facet_wrap(vars(topic), ncol=4)+
+  theme(strip.text.x = element_text(size =9))+
+    scale_size(range = c(1, 4))
+
+
+
+
+theta<-as.data.frame(slda$theta)
 
 topic<-cbind(text1,theta) 
 

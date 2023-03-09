@@ -1,0 +1,6 @@
+"0","UD <- as.data.frame(UD)
+"
+"2","Warning: input string 1 is invalid UTF-8"
+"2","Error in `[.data.table`(out, , `:=`(c(""token_id"", ""token"", ""lemma"", ""upos"",  : 
+  Supplied 10 columns to be assigned an empty list (which may be an empty data.table or data.frame since they are lists too). To delete multiple columns use NULL instead. To add multiple empty list columns, use list(list()).
+"
